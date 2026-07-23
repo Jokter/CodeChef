@@ -10,23 +10,50 @@ import java.util.Comparator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+/**
+ * 列出工作区内目录直接子项的工具。
+ *
+ * <p>工具名为 {@code list_files}。它读取参数 {@code path} 指定的目录；
+ * 参数为空时默认使用工作区根目录。该工具只列出直接子项，不递归遍历子目录。</p>
+ */
 public class ListFilesTool implements Tool {
     private final WorkspacePolicy workspacePolicy;
 
+    /**
+     * 创建列目录工具。
+     *
+     * @param workspacePolicy 工作区路径安全策略
+     */
     public ListFilesTool(WorkspacePolicy workspacePolicy) {
         this.workspacePolicy = workspacePolicy;
     }
 
+    /**
+     * 返回模型调用该工具时使用的名称。
+     *
+     * @return 固定值 {@code list_files}
+     */
     @Override
     public String name() {
         return "list_files";
     }
 
+    /**
+     * 返回工具能力说明。
+     *
+     * @return 工具描述文本
+     */
     @Override
     public String description() {
         return "列出工作区内某个目录的直接子文件。";
     }
 
+    /**
+     * 执行列目录操作。
+     *
+     * @param toolCall 工具调用；可选参数 {@code path} 表示目标目录
+     * @return 目录子项列表；目标不是目录或读取失败时返回错误结果
+     */
     @Override
     public ToolResult execute(ToolCall toolCall) {
         String inputPath = toolCall.argument("path");
@@ -48,6 +75,12 @@ public class ListFilesTool implements Tool {
         }
     }
 
+    /**
+     * 将文件系统路径格式化为面向用户的相对路径展示。
+     *
+     * @param path 工作区内的文件或目录路径
+     * @return 带有类型标记的相对路径，例如 {@code [文件] README.md}
+     */
     private String formatPath(Path path) {
         String type = Files.isDirectory(path) ? "[目录]" : "[文件]";
         return type + " " + workspacePolicy.workspaceRoot().relativize(path);

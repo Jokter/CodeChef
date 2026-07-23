@@ -34,7 +34,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-                    <mainClass>ai.deep.minicodex.Main</mainClass>
+                    <mainClass>ai.deep.minicodex.cli.Main</mainClass>
                 </configuration>
             </plugin>
         </plugins>

@@ -16,13 +16,13 @@
 ```powershell
 mkdir target\classes
 javac -encoding UTF-8 -d target\classes @(Get-ChildItem -Recurse -Filter *.java -Path src\main\java | ForEach-Object { $_.FullName })
-java -cp target\classes ai.deep.minicodex.Main "看看当前项目里有什么文件"
+java -cp target\classes ai.deep.minicodex.cli.Main "看看当前项目里有什么文件"
 ```
 
 如果你的 Maven 环境可用，也可以运行：
 
 ```powershell
-mvn compile exec:java -Dexec.mainClass="ai.deep.minicodex.Main" -Dexec.args="看看当前项目里有什么文件"
+mvn compile exec:java -Dexec.mainClass="ai.deep.minicodex.cli.Main" -Dexec.args="看看当前项目里有什么文件"
 ```
 
 后续可以逐步替换 `FakeModelClient`：
