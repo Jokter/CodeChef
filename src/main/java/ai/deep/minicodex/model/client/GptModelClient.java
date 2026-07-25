@@ -3,7 +3,7 @@ package ai.deep.minicodex.model.client;
 import ai.deep.minicodex.model.api.ModelClient;
 import ai.deep.minicodex.model.api.ModelResponse;
 import ai.deep.minicodex.model.api.ToolCall;
-import ai.deep.minicodex.model.config.ModelConfig;
+import ai.deep.minicodex.model.config.GptModelConfig;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -19,17 +19,16 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 调用真实模型接口的模型客户端。
+ * 调用 GPT 真实接口的模型客户端。
  *
- * <p>该实现使用 {@link ModelConfig} 中的 OpenAI Chat Completions 兼容配置发起请求。
- * 为了适配当前最小 Agent 结构，它要求模型返回一个简单 JSON 对象，用来表示最终回答
- * 或工具调用。</p>
+ * <p>该实现使用 {@link GptModelConfig} 中的 GPT 配置发起请求。为了适配当前最小 Agent
+ * 结构，它要求模型返回一个简单 JSON 对象，用来表示最终回答或工具调用。</p>
  */
-public class RealModelClient implements ModelClient {
+public class GptModelClient implements ModelClient {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(60);
     private static final String SYSTEM_PROMPT = """
-            你是一个最小 Java Agent 的真实模型客户端。
+            你是一个最小 Java Agent 的 GPT 模型客户端。
             你必须只返回一个 JSON 对象，不要使用 Markdown 代码块。
 
             可用工具：
@@ -44,21 +43,21 @@ public class RealModelClient implements ModelClient {
             当已经可以回答用户任务时，返回 final。
             """;
 
-    private final ModelConfig config;
+    private final GptModelConfig config;
     private final HttpClient httpClient;
 
     /**
-     * 创建真实模型客户端。
+     * 创建 GPT 模型客户端。
      *
-     * @param config 真实模型配置
+     * @param config GPT 模型配置
      */
-    public RealModelClient(ModelConfig config) {
+    public GptModelClient(GptModelConfig config) {
         this.config = config;
         this.httpClient = HttpClient.newHttpClient();
     }
 
     /**
-     * 调用真实模型生成下一步响应。
+     * 调用 GPT 模型生成下一步响应。
      *
      * @param userTask 用户原始任务
      * @param observations 历史工具观察结果
@@ -69,36 +68,58 @@ public class RealModelClient implements ModelClient {
         try {
             HttpResponse<String> response = sendChatRequest(userTask, observations);
             if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("真实模型请求失败，HTTP 状态码: "
+                throw new IllegalStateException("GPT 模型请求失败，HTTP 状态码: "
                         + response.statusCode() + "\n" + response.body());
             }
 
             String content = extractContent(OBJECT_MAPPER.readTree(response.body()));
             return parseModelResponse(content);
         } catch (IOException e) {
-            throw new IllegalStateException("真实模型请求或响应解析失败。", e);
+            throw new IllegalStateException("GPT 模型请求或响应解析失败。", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("真实模型请求被中断。", e);
+            throw new IllegalStateException("GPT 模型请求被中断。", e);
         }
     }
 
     private HttpResponse<String> sendChatRequest(String userTask, List<String> observations)
             throws IOException, InterruptedException {
         String requestBody = buildRequestBody(userTask, observations);
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(URI.create(config.url()))
+        HttpRequest request = HttpRequest.newBuilder(URI.create(config.url()))
                 .timeout(REQUEST_TIMEOUT)
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody));
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
 
-        if (config.hasApiKey()) {
-            requestBuilder.header("Authorization", "Bearer " + config.apiKey());
-        }
-
-        return httpClient.send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+        return httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     }
 
     private String buildRequestBody(String userTask, List<String> observations) throws JsonProcessingException {
+        if (config.isAnthropicApiFormat()) {
+            return buildAnthropicRequestBody(userTask, observations);
+        }
+
+        if (config.isOpenAiApiFormat()) {
+            return buildOpenAiRequestBody(userTask, observations);
+        }
+
+        throw new IllegalArgumentException("不支持的 GPT API 请求格式: " + config.apiFormat());
+    }
+
+    private String buildAnthropicRequestBody(String userTask, List<String> observations) throws JsonProcessingException {
+        Map<String, Object> payload = Map.of(
+                "model", config.name(),
+                "system", SYSTEM_PROMPT,
+                "messages", List.of(
+                        Map.of("role", "user", "content", buildUserContent(userTask, observations))
+                ),
+                "temperature", 0.2,
+                "max_tokens", 600
+        );
+        return OBJECT_MAPPER.writeValueAsString(payload);
+    }
+
+    private String buildOpenAiRequestBody(String userTask, List<String> observations) throws JsonProcessingException {
         Map<String, Object> payload = Map.of(
                 "model", config.name(),
                 "messages", List.of(

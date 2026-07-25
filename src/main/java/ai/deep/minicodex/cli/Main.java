@@ -1,7 +1,8 @@
 package ai.deep.minicodex.cli;
 
 import ai.deep.minicodex.agent.AgentLoop;
-import ai.deep.minicodex.model.client.FakeModelClient;
+import ai.deep.minicodex.model.client.GptModelClient;
+import ai.deep.minicodex.model.config.GptModelConfig;
 import ai.deep.minicodex.safety.WorkspacePolicy;
 import ai.deep.minicodex.tool.file.ListFilesTool;
 import ai.deep.minicodex.tool.file.ReadFileTool;
@@ -23,7 +24,7 @@ public class Main {
      *
      * @param args 用户任务参数；为空时从标准输入读取任务
      */
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Path workspaceRoot = Path.of("").toAbsolutePath().normalize();
         WorkspacePolicy workspacePolicy = new WorkspacePolicy(workspaceRoot);
 
@@ -31,7 +32,8 @@ public class Main {
         toolRegistry.register(new ListFilesTool(workspacePolicy));
         toolRegistry.register(new ReadFileTool(workspacePolicy));
 
-        AgentLoop agentLoop = new AgentLoop(new FakeModelClient(), toolRegistry);
+        GptModelConfig modelConfig = GptModelConfig.loadDefault();
+        AgentLoop agentLoop = new AgentLoop(new GptModelClient(modelConfig), toolRegistry);
 
         String task = readTask(args);
         System.out.println("工作区: " + workspaceRoot);

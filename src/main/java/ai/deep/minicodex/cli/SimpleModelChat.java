@@ -1,6 +1,6 @@
 package ai.deep.minicodex.cli;
 
-import ai.deep.minicodex.model.config.ModelConfig;
+import ai.deep.minicodex.model.config.GptModelConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -16,9 +16,8 @@ import java.util.Map;
 /**
  * 简单真实模型对话入口。
  *
- * <p>该类从 {@code config/model.properties} 读取真实模型配置，向配置的
- * {@code model.url} 发起一次普通聊天请求，并打印用户消息和模型回复。
- * 请求和响应均按 OpenAI Chat Completions 兼容格式处理。
+ * <p>该类从 {@code config/model.properties} 读取 GPT 模型配置，向配置的
+ * {@code gpt.model.url} 发起一次普通聊天请求，并打印用户消息和模型回复。
  * 它用于比连接探测更直观地验证模型是否能完成正常对话。</p>
  */
 public class SimpleModelChat {
@@ -32,29 +31,43 @@ public class SimpleModelChat {
      * @throws Exception 配置读取、网络请求或响应解析失败时抛出
      */
     public static void main(String[] args) throws Exception {
-        ModelConfig config = ModelConfig.loadDefault();
+        GptModelConfig config = GptModelConfig.loadDefault();
         String userMessage = args.length > 0 ? String.join(" ", args) : DEFAULT_MESSAGE;
         HttpResponse<String> response = sendChatRequest(config, userMessage);
 
         printResponse(userMessage, response);
     }
 
-    private static HttpResponse<String> sendChatRequest(ModelConfig config, String userMessage)
+    private static HttpResponse<String> sendChatRequest(GptModelConfig config, String userMessage)
             throws IOException, InterruptedException {
         String requestBody = buildRequestBody(config, userMessage);
-        HttpRequest.Builder requestBuilder = HttpRequest.newBuilder(URI.create(config.url()))
+        HttpRequest request = HttpRequest.newBuilder(URI.create(config.url()))
                 .timeout(Duration.ofSeconds(60))
                 .header("Content-Type", "application/json")
-                .POST(HttpRequest.BodyPublishers.ofString(requestBody));
+                .POST(HttpRequest.BodyPublishers.ofString(requestBody))
+                .build();
 
-        if (config.hasApiKey()) {
-            requestBuilder.header("Authorization", "Bearer " + config.apiKey());
-        }
-
-        return HttpClient.newHttpClient().send(requestBuilder.build(), HttpResponse.BodyHandlers.ofString());
+        return HttpClient.newHttpClient().send(request, HttpResponse.BodyHandlers.ofString());
     }
 
-    private static String buildRequestBody(ModelConfig config, String userMessage) throws IOException {
+    private static String buildRequestBody(GptModelConfig config, String userMessage) throws IOException {
+        if (config.isAnthropicApiFormat()) {
+            Map<String, Object> payload = Map.of(
+                    "model", config.name(),
+                    "system", "你是一个简洁、友好的中文助手。",
+                    "messages", List.of(
+                            Map.of("role", "user", "content", userMessage)
+                    ),
+                    "temperature", 0.7,
+                    "max_tokens", 200
+            );
+            return OBJECT_MAPPER.writeValueAsString(payload);
+        }
+
+        if (!config.isOpenAiApiFormat()) {
+            throw new IllegalArgumentException("不支持的 GPT API 请求格式: " + config.apiFormat());
+        }
+
         Map<String, Object> payload = Map.of(
                 "model", config.name(),
                 "messages", List.of(
