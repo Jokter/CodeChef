@@ -1,4 +1,8 @@
-package ai.deep.minicodex.model;
+package ai.deep.minicodex.model.client;
+
+import ai.deep.minicodex.model.api.ModelClient;
+import ai.deep.minicodex.model.api.ModelResponse;
+import ai.deep.minicodex.model.api.ToolCall;
 
 import java.util.List;
 import java.util.Map;

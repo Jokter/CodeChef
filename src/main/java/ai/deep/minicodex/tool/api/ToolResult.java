@@ -1,4 +1,4 @@
-package ai.deep.minicodex.tool;
+package ai.deep.minicodex.tool.api;
 
 /**
  * 工具执行结果。

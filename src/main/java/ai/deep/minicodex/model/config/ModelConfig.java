@@ -1,4 +1,6 @@
-package ai.deep.minicodex.model;
+package ai.deep.minicodex.model.config;
+
+import ai.deep.minicodex.model.api.ModelClient;
 
 import java.io.IOException;
 import java.io.InputStream;

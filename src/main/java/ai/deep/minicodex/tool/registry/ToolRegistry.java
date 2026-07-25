@@ -1,6 +1,8 @@
-package ai.deep.minicodex.tool;
+package ai.deep.minicodex.tool.registry;
 
-import ai.deep.minicodex.model.ToolCall;
+import ai.deep.minicodex.model.api.ToolCall;
+import ai.deep.minicodex.tool.api.Tool;
+import ai.deep.minicodex.tool.api.ToolResult;
 
 import java.util.LinkedHashMap;
 import java.util.Map;

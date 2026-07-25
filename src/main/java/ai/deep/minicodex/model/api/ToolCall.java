@@ -1,4 +1,4 @@
-package ai.deep.minicodex.model;
+package ai.deep.minicodex.model.api;
 
 import java.util.Map;
 

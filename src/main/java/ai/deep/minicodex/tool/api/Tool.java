@@ -1,6 +1,6 @@
-package ai.deep.minicodex.tool;
+package ai.deep.minicodex.tool.api;
 
-import ai.deep.minicodex.model.ToolCall;
+import ai.deep.minicodex.model.api.ToolCall;
 
 /**
  * Agent 可调用工具的统一接口。

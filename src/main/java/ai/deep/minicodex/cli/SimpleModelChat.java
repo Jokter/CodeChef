@@ -1,6 +1,6 @@
 package ai.deep.minicodex.cli;
 
-import ai.deep.minicodex.model.ModelConfig;
+import ai.deep.minicodex.model.config.ModelConfig;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 

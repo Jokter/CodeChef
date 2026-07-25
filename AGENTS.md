@@ -2,27 +2,40 @@
 
 ## 项目结构与模块组织
 
-本仓库是一个 Maven Java 项目，主包为 `ai.deep.minicodex`。命令行入口放在 `cli/`，核心 Agent 循环放在 `agent/`，模型接口、配置与实现放在 `model/`，工作区路径安全策略放在 `safety/`，工具接口与文件工具实现放在 `tool/`。默认入口是 `src/main/java/ai/deep/minicodex/cli/Main.java`。构建输出位于 `target/`，本地 Maven 缓存位于 `.m2repo/`；新增测试按 Maven 约定放入 `src/test/java`。
+本仓库是一个最小化 Java Agent 示例项目，使用 Maven 管理构建。主要代码位于 `src/main/java/ai/deep/minicodex`：
+
+- `agent/`：Agent 主循环与执行流程。
+- `cli/`：命令行入口，例如 `Main` 与 `SimpleModelChat`。
+- `model/api/`：模型接口、响应与工具调用数据结构。
+- `model/client/`：模型客户端实现，例如 `FakeModelClient` 与 `RealModelClient`。
+- `model/config/`：真实模型配置读取。
+- `tool/api/`：工具接口与工具执行结果。
+- `tool/registry/`：工具注册表与分发逻辑。
+- `tool/file/`：文件读取、目录列表等文件工具实现。
+- `safety/`：工作区路径安全策略。
+- `config/model.properties.example`：真实模型配置模板。
+
+构建产物在 `target/`，本地 Maven 仓库可放在 `.m2repo/`。不要提交 `target/`、`.m2repo/`、IDE 配置或 `config/model.properties`。
 
 ## 构建、测试与本地运行命令
 
-- `mvn -Dmaven.repo.local=.m2repo compile`：使用仓库内 Maven 缓存编译 Java 22 源码。
-- `mvn -Dmaven.repo.local=.m2repo exec:java -Dexec.args="列出当前项目文件"`：运行默认入口 `ai.deep.minicodex.cli.Main`。
-- `mvn -Dmaven.repo.local=.m2repo test`：运行测试阶段；目前没有测试类时可作为基础编译检查。
-- `javac -encoding UTF-8 -d target/classes ...`：Maven 不可用时可参考 `README.md` 手动编译。
+- `mvn compile`：编译 Java 22 源码。
+- `mvn exec:java -Dexec.mainClass="ai.deep.minicodex.cli.Main" -Dexec.args="看看当前项目里有什么文件"`：运行默认 Agent 演示。
+- `mvn -Dmaven.repo.local=.m2repo exec:java -Dexec.mainClass="ai.deep.minicodex.cli.SimpleModelChat" -Dexec.args="你好"`：使用本地 Maven 仓库运行模型连通性验证。
+- `mvn test`：运行测试；当前仓库尚未提供 `src/test`，新增测试后应使用此命令验证。
 
 ## 编码风格与命名约定
 
-项目使用 Java 22 和 UTF-8。保持现有 Java 风格：4 空格缩进，类名使用 `PascalCase`，方法和变量使用 `camelCase`，包名保持小写。接口应小而明确，例如 `Tool`、`ModelClient`；实现类按职责命名，例如 `ReadFileTool`、`FakeModelClient`。新增逻辑优先放入现有模块，避免为一次性需求创建额外抽象。
+使用 Java 22，源码编码为 UTF-8。保持现有风格：4 空格缩进，类名使用 `PascalCase`，方法、变量和包名使用 `camelCase` 或小写包路径。公共类型应职责单一，新增工具优先实现 `Tool` 并注册到 `ToolRegistry`。除非修改区域确有需要，不要顺手重排无关导入、注释或格式。
 
 ## 测试指南
 
-当前 `pom.xml` 未声明专用测试框架。添加测试前请先引入明确依赖，例如 JUnit 5。测试类命名使用 `*Test`，并镜像源码包结构，例如 `src/test/java/ai/deep/minicodex/tool/ReadFileToolTest.java`。修改工具、路径校验或 Agent 循环时，应覆盖成功路径和关键失败路径。
+新测试建议放在 `src/test/java`，包路径与被测类保持一致。测试命名使用 `ClassNameTest`，测试方法描述具体行为，例如 `rejectsPathOutsideWorkspace`。涉及安全策略、工具执行、模型响应解析的改动应优先补测试；CLI 交互可用小范围集成测试或手动命令验证。
 
 ## 提交与 Pull Request 指南
 
-当前 Git 历史只有 `Initial commit`，尚未形成细化约定。后续提交建议使用简洁祈使句，例如 `Add read file tests` 或 `Fix workspace path validation`。PR 应说明改动目的、主要影响文件、验证命令和用户可见行为变化；涉及 CLI 交互时附示例命令或关键输出。保持 PR 聚焦，不混入无关重构或格式化。
+历史提交使用简短英文祈使句，例如 `Improve model chat verification`。继续沿用这种风格：一句话说明行为变化，避免笼统的 `update`。PR 应包含变更摘要、验证命令与结果、关联 issue；涉及 CLI 输出或配置流程时，附上示例命令或截图。不要在 PR 中包含本地密钥、真实 `model.properties` 或生成产物。
 
 ## 安全与配置提示
 
-文件访问必须遵守工作区边界，相关逻辑集中在 `WorkspacePolicy`。不要提交真实 API Key、个人路径或生成产物。修改真实模型接入时，将外部 API 调用与 `FakeModelClient` 的演示逻辑分开，便于本地测试和审查。
+真实模型密钥只放在本地配置或代理托管环境中。提交前检查 `.gitignore` 覆盖敏感文件，并确认路径访问仍受 `WorkspacePolicy` 限制。

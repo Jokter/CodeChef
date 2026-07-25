@@ -1,11 +1,11 @@
 package ai.deep.minicodex.cli;
 
 import ai.deep.minicodex.agent.AgentLoop;
-import ai.deep.minicodex.model.FakeModelClient;
+import ai.deep.minicodex.model.client.FakeModelClient;
 import ai.deep.minicodex.safety.WorkspacePolicy;
-import ai.deep.minicodex.tool.ListFilesTool;
-import ai.deep.minicodex.tool.ReadFileTool;
-import ai.deep.minicodex.tool.ToolRegistry;
+import ai.deep.minicodex.tool.file.ListFilesTool;
+import ai.deep.minicodex.tool.file.ReadFileTool;
+import ai.deep.minicodex.tool.registry.ToolRegistry;
 
 import java.nio.file.Path;
 import java.util.Scanner;

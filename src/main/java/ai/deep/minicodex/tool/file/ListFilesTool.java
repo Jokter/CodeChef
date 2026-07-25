@@ -1,7 +1,9 @@
-package ai.deep.minicodex.tool;
+package ai.deep.minicodex.tool.file;
 
-import ai.deep.minicodex.model.ToolCall;
+import ai.deep.minicodex.model.api.ToolCall;
 import ai.deep.minicodex.safety.WorkspacePolicy;
+import ai.deep.minicodex.tool.api.Tool;
+import ai.deep.minicodex.tool.api.ToolResult;
 
 import java.io.IOException;
 import java.nio.file.Files;

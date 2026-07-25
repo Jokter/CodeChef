@@ -1,10 +1,10 @@
 package ai.deep.minicodex.agent;
 
-import ai.deep.minicodex.model.ModelClient;
-import ai.deep.minicodex.model.ModelResponse;
-import ai.deep.minicodex.model.ToolCall;
-import ai.deep.minicodex.tool.ToolRegistry;
-import ai.deep.minicodex.tool.ToolResult;
+import ai.deep.minicodex.model.api.ModelClient;
+import ai.deep.minicodex.model.api.ModelResponse;
+import ai.deep.minicodex.model.api.ToolCall;
+import ai.deep.minicodex.tool.api.ToolResult;
+import ai.deep.minicodex.tool.registry.ToolRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
