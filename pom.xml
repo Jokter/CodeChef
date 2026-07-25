@@ -12,6 +12,7 @@
         <maven.compiler.source>22</maven.compiler.source>
         <maven.compiler.target>22</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <exec.mainClass>ai.deep.minicodex.cli.Main</exec.mainClass>
     </properties>
 
     <dependencies>
@@ -34,7 +35,7 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>3.5.0</version>
                 <configuration>
-                    <mainClass>ai.deep.minicodex.cli.Main</mainClass>
+                    <mainClass>${exec.mainClass}</mainClass>
                 </configuration>
             </plugin>
         </plugins>

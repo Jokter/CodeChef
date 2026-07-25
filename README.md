@@ -25,6 +25,14 @@ java -cp target\classes ai.deep.minicodex.cli.Main "看看当前项目里有什�
 mvn compile exec:java -Dexec.mainClass="ai.deep.minicodex.cli.Main" -Dexec.args="看看当前项目里有什么文件"
 ```
 
+验证真实模型配置：
+
+```powershell
+mvn -Dmaven.repo.local=.m2repo exec:java -Dexec.mainClass="ai.deep.minicodex.cli.SimpleModelChat" -Dexec.args="你好，简单介绍一下你自己"
+```
+
+`config/model.properties` 不应提交。使用本地代理托管鉴权时，无需配置 `model.apiKey`。
+
 后续可以逐步替换 `FakeModelClient`：
 
 - 接入真实模型 API。

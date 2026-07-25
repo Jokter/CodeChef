@@ -15,7 +15,7 @@ import java.util.Properties;
  *
  * @param name 模型名称
  * @param url 模型完整 API 地址，例如 {@code https://www.dmxapi.cn/v1/chat/completions}
- * @param apiKey 模型 API Key
+ * @param apiKey 模型 API Key；本地代理托管鉴权时可为空
  */
 public record ModelConfig(String name, String url, String apiKey) {
     private static final String NAME_KEY = "model.name";
@@ -27,7 +27,7 @@ public record ModelConfig(String name, String url, String apiKey) {
      *
      * @return 模型配置
      * @throws IOException 配置文件读取失败时抛出
-     * @throws IllegalArgumentException 配置项缺失或为空时抛出
+     * @throws IllegalArgumentException 必填配置项缺失或为空时抛出
      */
     public static ModelConfig loadDefault() throws IOException {
         return load(Path.of("config", "model.properties"));
@@ -39,7 +39,7 @@ public record ModelConfig(String name, String url, String apiKey) {
      * @param configPath 配置文件路径
      * @return 模型配置
      * @throws IOException 配置文件读取失败时抛出
-     * @throws IllegalArgumentException 配置项缺失或为空时抛出
+     * @throws IllegalArgumentException 必填配置项缺失或为空时抛出
      */
     public static ModelConfig load(Path configPath) throws IOException {
         Properties properties = new Properties();
@@ -50,14 +50,31 @@ public record ModelConfig(String name, String url, String apiKey) {
         return new ModelConfig(
                 required(properties, NAME_KEY),
                 required(properties, URL_KEY),
-                required(properties, API_KEY_KEY)
+                optional(properties, API_KEY_KEY, "")
         );
+    }
+
+    /**
+     * 判断当前配置是否提供了可发送给上游服务的 API Key。
+     *
+     * @return API Key 非空时返回 {@code true}
+     */
+    public boolean hasApiKey() {
+        return apiKey != null && !apiKey.isBlank();
     }
 
     private static String required(Properties properties, String key) {
         String value = properties.getProperty(key);
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("缺少模型配置项: " + key);
+        }
+        return value.trim();
+    }
+
+    private static String optional(Properties properties, String key, String defaultValue) {
+        String value = properties.getProperty(key);
+        if (value == null || value.isBlank()) {
+            return defaultValue;
         }
         return value.trim();
     }

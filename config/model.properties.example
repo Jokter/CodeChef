@@ -7,5 +7,5 @@ model.name=your-model-name
 # 模型 API 地址，例如：https://api.example.com/v1/chat/completions
 model.url=https://api.example.com/v1/chat/completions
 
-# 模型 API Key。不要把真实 Key 写入本模板。
+# 模型 API Key。不要把真实 Key 写入本模板；本地代理托管鉴权时可省略。
 model.apiKey=your-api-key
