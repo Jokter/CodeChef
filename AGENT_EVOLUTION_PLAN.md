@@ -46,7 +46,7 @@
 4. 不追求功能完整，追求概念清楚。
 5. 当实现开始明显变复杂时，停下来转向源码阅读。
 
-## 阶段 0：工程阅读体验整理
+## 阶段 0：工程阅读体验整理（短前置门槛）
 
 ### 目标
 
@@ -54,18 +54,15 @@
 
 ### 实现范围
 
-- 确认 Java 源码注释与字符串是否存在编码问题。
-- 如确认为编码问题，统一修复为 UTF-8 中文。
-- 建立最小测试目录 `src/test/java`。
-- 优先为 `WorkspacePolicy` 和 `ToolRegistry` 补少量单元测试。
-- 在 `README.md` 中补一段当前 agent 链路说明。
+- 引入 JUnit 5，并建立最小测试目录 `src/test/java`。
+- 只新增 `WorkspacePolicyTest` 和 `ToolRegistryTest` 两个最小单元测试类。
+- 在 `README.md` 中补一段当前真实代码状态下的 agent 链路说明。
 
 ### 验收标准
 
 - `mvn compile` 通过。
-- `mvn test` 通过。
-- Java 源码中的中文说明可正常阅读。
-- 新读者能通过 README 快速理解主链路。
+- `mvn test` 通过，且只覆盖 `WorkspacePolicy` 与 `ToolRegistry` 的核心行为。
+- 新读者能通过 README 快速理解当前已实现的主链路。
 
 ### 对应源码阅读点
 
@@ -81,12 +78,18 @@
 ### 实现范围
 
 - 新增 `ToolSchema` 数据结构。
-- `Tool` 增加 `schema()` 方法，或先增加简单的 `parametersDescription()`。
+- `Tool` 直接增加 `schema()` 方法。
 - `ReadFileTool` 提供 `path` 参数说明。
 - `ListFilesTool` 提供 `path` 参数说明。
-- `ToolRegistry` 提供 `schemas()` 或 `describeTools()`。
+- `ToolRegistry` 提供 `schemas()`，只汇总结构化工具说明。
+- 阶段 1 不实现 OpenAI / Anthropic 的真实 API tool schema，只生成面向 prompt 的工具说明文本。
+- 阶段 1 暂不修改 `ModelClient.next` 接口，接口重塑留到 `ContextBuilder` 阶段。
+- `GptModelClient` 只依赖 `List<ToolSchema>`，不依赖 `ToolRegistry`。
+- `GptModelClient` 构造器改为接收 `GptModelConfig` 和 `List<ToolSchema>`，不保留无工具说明的旧构造器。
 
 ### 建议最小数据结构
+
+文件位置：`src/main/java/ai/deep/minicodex/tool/api/ToolSchema.java`
 
 ```java
 public record ToolSchema(
@@ -97,11 +100,14 @@ public record ToolSchema(
 }
 ```
 
+参数约束写在自然语言说明中，不新增 `required`、`type`、`defaultValue` 等结构化字段。
+
 ### 验收标准
 
 - 工具说明由工具实现类提供。
 - 新增工具时不需要修改 `GptModelClient` 的 prompt。
 - `FakeModelClient` 和 `GptModelClient` 仍能正常运行。
+- 阶段 1 不单独测试临时 prompt 渲染逻辑，等 `ContextBuilder` 阶段再补上下文构建单测。
 
 ### 对应源码阅读点
 
@@ -456,7 +462,7 @@ AgentLoop
 
 ## 推荐执行顺序
 
-1. 阶段 0：工程阅读体验整理。
+1. 阶段 0：工程阅读体验整理（短前置门槛）。
 2. 阶段 1：ToolSchema。
 3. 阶段 2：ContextBuilder。
 4. 阶段 3：ModelOutputParser。
@@ -470,7 +476,7 @@ AgentLoop
 
 ## 下一步建议
 
-下一次真实编码建议从阶段 1 开始：
+下一次真实编码建议先完成阶段 0 的短前置门槛，再从阶段 1 开始：
 
 ```text
 目标：让 GptModelClient 不再硬编码工具说明。
