@@ -2,6 +2,20 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Agent skills
+
+### Issue tracker
+
+本仓库使用 GitHub Issues 跟踪任务。详见 `docs/agents/issue-tracker.md`。
+
+### Triage labels
+
+本仓库使用默认的五个 triage 标签。详见 `docs/agents/triage-labels.md`。
+
+### Domain docs
+
+本仓库使用 single-context 领域文档布局。详见 `docs/agents/domain.md`。
+
 ## 项目概览
 
 这是一个用于学习 Codex / Claude Code 核心工作方式的极简 Java Agent 框架。当前主流程是：CLI 接收用户任务，`AgentLoop` 调用模型客户端，模型返回工具调用或最终回答，Java 侧执行工具并把观察结果交回模型。
