@@ -42,8 +42,20 @@ class ContextBuilderTest {
 
         ModelContext context = builder.build("看看当前项目", List.of());
 
-        assertTrue(context.userContent().contains("用户任务:\n看看当前项目"));
+        assertTrue(context.userContent().contains("【用户任务开始】\n看看当前项目\n【用户任务结束】"));
+        assertTrue(context.userContent().contains("【工具观察结果开始】"));
         assertTrue(context.userContent().contains("当前还没有工具观察结果。"));
+        assertTrue(context.userContent().contains("【工具观察结果结束】"));
+    }
+
+    @Test
+    void separatesTaskTextFromObservationNotice() {
+        ContextBuilder builder = new ContextBuilder(List.of());
+
+        ModelContext context = builder.build("请创建文件，内容是：", List.of());
+
+        assertTrue(context.userContent().contains("内容是：\n【用户任务结束】"));
+        assertTrue(context.userContent().contains("【工具观察结果开始】\n当前还没有工具观察结果。"));
     }
 
     @Test

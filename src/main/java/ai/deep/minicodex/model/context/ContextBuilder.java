@@ -83,21 +83,23 @@ public class ContextBuilder {
     }
 
     private String buildUserContent(String userTask, List<ToolObservation> observations) {
+        return "【用户任务开始】\n"
+                + userTask
+                + "\n【用户任务结束】\n\n"
+                + "【工具观察结果开始】\n"
+                + buildObservationContent(observations)
+                + "\n【工具观察结果结束】";
+    }
+
+    private String buildObservationContent(List<ToolObservation> observations) {
         if (observations.isEmpty()) {
-            return "用户任务:\n" + userTask + "\n\n当前还没有工具观察结果。";
+            return "当前还没有工具观察结果。";
         }
 
         String renderedObservations = observations.stream()
                 .map(this::renderObservation)
                 .collect(Collectors.joining("\n---\n"));
-
-        return """
-                用户任务:
-                %s
-
-                历史工具观察结果:
-                %s
-                """.formatted(userTask, renderedObservations);
+        return "历史工具观察结果:\n" + renderedObservations;
     }
 
     private String renderObservation(ToolObservation observation) {
