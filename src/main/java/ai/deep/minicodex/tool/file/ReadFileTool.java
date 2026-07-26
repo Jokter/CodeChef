@@ -4,11 +4,13 @@ import ai.deep.minicodex.model.api.ToolCall;
 import ai.deep.minicodex.safety.WorkspacePolicy;
 import ai.deep.minicodex.tool.api.Tool;
 import ai.deep.minicodex.tool.api.ToolResult;
+import ai.deep.minicodex.tool.api.ToolSchema;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Map;
 
 /**
  * 读取工作区内文本文件的工具。
@@ -46,6 +48,20 @@ public class ReadFileTool implements Tool {
     @Override
     public String description() {
         return "读取工作区内的文本文件。";
+    }
+
+    /**
+     * 返回读文件工具的模型可见说明。
+     *
+     * @return 工具 schema
+     */
+    @Override
+    public ToolSchema schema() {
+        return new ToolSchema(
+                name(),
+                description(),
+                Map.of("path", "目标文件路径。必填，必须位于工作区内。")
+        );
     }
 
     /**

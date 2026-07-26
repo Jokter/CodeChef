@@ -3,8 +3,10 @@ package ai.deep.minicodex.tool.registry;
 import ai.deep.minicodex.model.api.ToolCall;
 import ai.deep.minicodex.tool.api.Tool;
 import ai.deep.minicodex.tool.api.ToolResult;
+import ai.deep.minicodex.tool.api.ToolSchema;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -26,6 +28,17 @@ public class ToolRegistry {
      */
     public void register(Tool tool) {
         tools.put(tool.name(), tool);
+    }
+
+    /**
+     * 获取所有已注册工具的结构化说明。
+     *
+     * @return 按注册顺序排列的工具 schema 列表
+     */
+    public List<ToolSchema> schemas() {
+        return tools.values().stream()
+                .map(Tool::schema)
+                .toList();
     }
 
     /**

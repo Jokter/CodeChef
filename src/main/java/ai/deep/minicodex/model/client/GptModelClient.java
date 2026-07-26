@@ -4,6 +4,7 @@ import ai.deep.minicodex.model.api.ModelClient;
 import ai.deep.minicodex.model.api.ModelResponse;
 import ai.deep.minicodex.model.api.ToolCall;
 import ai.deep.minicodex.model.config.GptModelConfig;
+import ai.deep.minicodex.tool.api.ToolSchema;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -17,6 +18,7 @@ import java.time.Duration;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 调用 GPT 真实接口的模型客户端。
@@ -27,13 +29,12 @@ import java.util.Map;
 public class GptModelClient implements ModelClient {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(60);
-    private static final String SYSTEM_PROMPT = """
+    private static final String SYSTEM_PROMPT_TEMPLATE = """
             你是一个最小 Java Agent 的 GPT 模型客户端。
             你必须只返回一个 JSON 对象，不要使用 Markdown 代码块。
 
             可用工具：
-            - list_files: 列出目录的直接子项，参数 {"path":"."}
-            - read_file: 读取工作区内的普通文件，参数 {"path":"README.md"}
+            %s
 
             返回格式只能是以下两种之一：
             {"type":"final","answer":"最终回答"}
@@ -44,15 +45,18 @@ public class GptModelClient implements ModelClient {
             """;
 
     private final GptModelConfig config;
+    private final List<ToolSchema> toolSchemas;
     private final HttpClient httpClient;
 
     /**
      * 创建 GPT 模型客户端。
      *
      * @param config GPT 模型配置
+     * @param toolSchemas 可用工具说明列表
      */
-    public GptModelClient(GptModelConfig config) {
+    public GptModelClient(GptModelConfig config, List<ToolSchema> toolSchemas) {
         this.config = config;
+        this.toolSchemas = List.copyOf(toolSchemas);
         this.httpClient = HttpClient.newHttpClient();
     }
 
@@ -109,7 +113,7 @@ public class GptModelClient implements ModelClient {
     private String buildAnthropicRequestBody(String userTask, List<String> observations) throws JsonProcessingException {
         Map<String, Object> payload = Map.of(
                 "model", config.name(),
-                "system", SYSTEM_PROMPT,
+                "system", buildSystemPrompt(),
                 "messages", List.of(
                         Map.of("role", "user", "content", buildUserContent(userTask, observations))
                 ),
@@ -123,13 +127,42 @@ public class GptModelClient implements ModelClient {
         Map<String, Object> payload = Map.of(
                 "model", config.name(),
                 "messages", List.of(
-                        Map.of("role", "system", "content", SYSTEM_PROMPT),
+                        Map.of("role", "system", "content", buildSystemPrompt()),
                         Map.of("role", "user", "content", buildUserContent(userTask, observations))
                 ),
                 "temperature", 0.2,
                 "max_tokens", 600
         );
         return OBJECT_MAPPER.writeValueAsString(payload);
+    }
+
+    private String buildSystemPrompt() {
+        return SYSTEM_PROMPT_TEMPLATE.formatted(renderToolSchemas());
+    }
+
+    private String renderToolSchemas() {
+        if (toolSchemas.isEmpty()) {
+            return "当前没有可用工具。";
+        }
+
+        return toolSchemas.stream()
+                .map(this::renderToolSchema)
+                .collect(Collectors.joining(System.lineSeparator()));
+    }
+
+    private String renderToolSchema(ToolSchema schema) {
+        String parameters = schema.parameters().entrySet().stream()
+                .map(entry -> "  - " + entry.getKey() + ": " + entry.getValue())
+                .collect(Collectors.joining(System.lineSeparator()));
+        if (parameters.isBlank()) {
+            parameters = "  - 无参数。";
+        }
+
+        return "- " + schema.name() + ": " + schema.description()
+                + System.lineSeparator()
+                + "  参数："
+                + System.lineSeparator()
+                + parameters;
     }
 
     private String buildUserContent(String userTask, List<String> observations) {

@@ -4,11 +4,13 @@ import ai.deep.minicodex.model.api.ToolCall;
 import ai.deep.minicodex.safety.WorkspacePolicy;
 import ai.deep.minicodex.tool.api.Tool;
 import ai.deep.minicodex.tool.api.ToolResult;
+import ai.deep.minicodex.tool.api.ToolSchema;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -48,6 +50,20 @@ public class ListFilesTool implements Tool {
     @Override
     public String description() {
         return "列出工作区内某个目录的直接子文件。";
+    }
+
+    /**
+     * 返回列目录工具的模型可见说明。
+     *
+     * @return 工具 schema
+     */
+    @Override
+    public ToolSchema schema() {
+        return new ToolSchema(
+                name(),
+                description(),
+                Map.of("path", "目标目录路径。可选，缺省为工作区根目录。")
+        );
     }
 
     /**

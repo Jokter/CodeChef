@@ -24,6 +24,13 @@ public interface Tool {
     String description();
 
     /**
+     * 工具面向模型的结构化说明。
+     *
+     * @return 工具名称、能力描述和参数说明
+     */
+    ToolSchema schema();
+
+    /**
      * 执行工具调用。
      *
      * @param toolCall 模型请求的工具调用，包含名称和参数

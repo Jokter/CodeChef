@@ -33,7 +33,7 @@ public class Main {
         toolRegistry.register(new ReadFileTool(workspacePolicy));
 
         GptModelConfig modelConfig = GptModelConfig.loadDefault();
-        AgentLoop agentLoop = new AgentLoop(new GptModelClient(modelConfig), toolRegistry);
+        AgentLoop agentLoop = new AgentLoop(new GptModelClient(modelConfig, toolRegistry.schemas()), toolRegistry);
 
         String task = readTask(args);
         System.out.println("工作区: " + workspaceRoot);

@@ -486,7 +486,7 @@ AgentLoop
 2. Tool 暴露 schema。
 3. ReadFileTool / ListFilesTool 实现 schema。
 4. ToolRegistry 汇总工具 schema。
-5. GptModelClient 的 prompt 从 ToolRegistry 获取工具说明。
+5. GptModelClient 的 prompt 从传入的 List<ToolSchema> 获取工具说明。
 
 验证：
 1. mvn compile
