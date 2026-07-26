@@ -28,6 +28,8 @@ import java.util.Map;
 public class GptModelClient implements ModelClient {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(60);
+    private static final int MAX_ATTEMPTS = 3;
+    private static final long RETRY_DELAY_MILLIS = 200;
 
     private final GptModelConfig config;
     private final HttpClient httpClient;
@@ -50,21 +52,68 @@ public class GptModelClient implements ModelClient {
      */
     @Override
     public ModelResponse next(ModelContext context) {
-        try {
-            HttpResponse<String> response = sendChatRequest(context);
-            if (response.statusCode() < 200 || response.statusCode() >= 300) {
-                throw new IllegalStateException("GPT 模型请求失败，HTTP 状态码: "
-                        + response.statusCode() + "\n" + response.body());
-            }
+        IllegalStateException lastFailure = null;
+        for (int attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+            try {
+                HttpResponse<String> response = sendChatRequest(context);
+                if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                    IllegalStateException failure = statusFailure(response);
+                    if (shouldRetryStatus(response.statusCode())) {
+                        lastFailure = failure;
+                        if (attempt == MAX_ATTEMPTS) {
+                            throw retryFailed(lastFailure);
+                        }
+                        printRetry(attempt);
+                        waitBeforeRetry(attempt);
+                        continue;
+                    }
+                    throw failure;
+                }
 
-            String content = extractContent(OBJECT_MAPPER.readTree(response.body()));
-            return parseModelResponse(content);
-        } catch (IOException e) {
-            throw new IllegalStateException("GPT 模型请求或响应解析失败。", e);
+                String content = extractContent(OBJECT_MAPPER.readTree(response.body()));
+                return parseModelResponse(content);
+            } catch (IOException e) {
+                lastFailure = new IllegalStateException("GPT 模型请求或响应解析失败。", e);
+                if (attempt < MAX_ATTEMPTS) {
+                    printRetry(attempt);
+                    waitBeforeRetry(attempt);
+                    continue;
+                }
+                throw retryFailed(lastFailure);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("GPT 模型请求被中断。", e);
+            }
+        }
+
+        throw retryFailed(lastFailure);
+    }
+
+    private IllegalStateException statusFailure(HttpResponse<String> response) {
+        return new IllegalStateException("GPT 模型请求失败，HTTP 状态码: "
+                + response.statusCode() + "\n" + response.body());
+    }
+
+    private boolean shouldRetryStatus(int statusCode) {
+        return statusCode == 429 || statusCode >= 500;
+    }
+
+    private void printRetry(int attempt) {
+        System.out.println("GPT 模型请求失败，准备第 " + attempt
+                + " 次重试（下一次为第 " + (attempt + 1) + "/" + MAX_ATTEMPTS + " 次尝试）。");
+    }
+
+    private void waitBeforeRetry(int attempt) {
+        try {
+            Thread.sleep(RETRY_DELAY_MILLIS * attempt);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("GPT 模型请求被中断。", e);
         }
+    }
+
+    private IllegalStateException retryFailed(IllegalStateException lastFailure) {
+        return new IllegalStateException("GPT 模型请求连续失败，已尝试 " + MAX_ATTEMPTS + " 次。", lastFailure);
     }
 
     private HttpResponse<String> sendChatRequest(ModelContext context)
