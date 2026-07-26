@@ -13,7 +13,6 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -80,7 +79,7 @@ class GptModelClientTest {
     }
 
     private static ModelContext context() {
-        return new ModelContext("用户任务", List.of(), "系统提示", "用户内容");
+        return new ModelContext("系统提示", "用户内容");
     }
 
     private static String openAiResponse(String content) {

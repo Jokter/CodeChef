@@ -1,5 +1,6 @@
 package ai.deep.minicodex.model.context;
 
+import ai.deep.minicodex.agent.ToolObservation;
 import ai.deep.minicodex.model.api.ModelContext;
 import ai.deep.minicodex.tool.api.ToolSchema;
 import org.junit.jupiter.api.Test;
@@ -41,8 +42,6 @@ class ContextBuilderTest {
 
         ModelContext context = builder.build("看看当前项目", List.of());
 
-        assertEquals("看看当前项目", context.userTask());
-        assertEquals(List.of(), context.observations());
         assertTrue(context.userContent().contains("用户任务:\n看看当前项目"));
         assertTrue(context.userContent().contains("当前还没有工具观察结果。"));
     }
@@ -50,11 +49,20 @@ class ContextBuilderTest {
     @Test
     void rendersHistoricalObservationsInOrder() {
         ContextBuilder builder = new ContextBuilder(List.of());
+        ToolObservation first = new ToolObservation("list_files", Map.of("path", "."), true, "README.md");
+        ToolObservation second = new ToolObservation("read_file", Map.of("path", "README.md"), false, "读取失败");
 
-        ModelContext context = builder.build("继续分析", List.of("第一次观察", "第二次观察"));
+        ModelContext context = builder.build("继续分析", List.of(first, second));
 
-        assertEquals(List.of("第一次观察", "第二次观察"), context.observations());
         assertTrue(context.userContent().contains("历史工具观察结果:"));
-        assertTrue(context.userContent().contains("第一次观察\n---\n第二次观察"));
+        assertTrue(context.userContent().contains("工具: list_files"));
+        assertTrue(context.userContent().contains("参数: {path=.}"));
+        assertTrue(context.userContent().contains("成功: true"));
+        assertTrue(context.userContent().contains("结果:\nREADME.md"));
+        assertTrue(context.userContent().contains("---"));
+        assertTrue(context.userContent().contains("工具: read_file"));
+        assertTrue(context.userContent().contains("参数: {path=README.md}"));
+        assertTrue(context.userContent().contains("成功: false"));
+        assertTrue(context.userContent().contains("结果:\n读取失败"));
     }
 }

@@ -1,5 +1,6 @@
 package ai.deep.minicodex.model.context;
 
+import ai.deep.minicodex.agent.ToolObservation;
 import ai.deep.minicodex.model.api.ModelContext;
 import ai.deep.minicodex.tool.api.ToolSchema;
 
@@ -45,10 +46,8 @@ public class ContextBuilder {
      * @param observations 历史工具观察结果
      * @return 模型请求上下文
      */
-    public ModelContext build(String userTask, List<String> observations) {
+    public ModelContext build(String userTask, List<ToolObservation> observations) {
         return new ModelContext(
-                userTask,
-                observations,
                 buildSystemPrompt(),
                 buildUserContent(userTask, observations)
         );
@@ -83,10 +82,14 @@ public class ContextBuilder {
                 + parameters;
     }
 
-    private String buildUserContent(String userTask, List<String> observations) {
+    private String buildUserContent(String userTask, List<ToolObservation> observations) {
         if (observations.isEmpty()) {
             return "用户任务:\n" + userTask + "\n\n当前还没有工具观察结果。";
         }
+
+        String renderedObservations = observations.stream()
+                .map(this::renderObservation)
+                .collect(Collectors.joining("\n---\n"));
 
         return """
                 用户任务:
@@ -94,6 +97,21 @@ public class ContextBuilder {
 
                 历史工具观察结果:
                 %s
-                """.formatted(userTask, String.join("\n---\n", observations));
+                """.formatted(userTask, renderedObservations);
+    }
+
+    private String renderObservation(ToolObservation observation) {
+        return """
+                工具: %s
+                参数: %s
+                成功: %s
+                结果:
+                %s
+                """.formatted(
+                observation.toolName(),
+                observation.arguments(),
+                observation.success(),
+                observation.content()
+        );
     }
 }

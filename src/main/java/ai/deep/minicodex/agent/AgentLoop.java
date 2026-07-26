@@ -44,7 +44,7 @@ public class AgentLoop {
      * @return Agent 的最终回答；若未完成则返回超时提示
      */
     public String run(String userTask) {
-        List<String> observations = new ArrayList<>();
+        List<ToolObservation> observations = new ArrayList<>();
 
         System.out.println("Agent 开始执行，最大循环次数: " + MAX_STEPS);
         for (int step = 1; step <= MAX_STEPS; step++) {
@@ -67,8 +67,7 @@ public class AgentLoop {
             System.out.println("工具参数: " + toolCall.arguments());
 
             ToolResult toolResult = toolRegistry.execute(toolCall);
-            String observation = formatObservation(toolCall, toolResult);
-            observations.add(observation);
+            observations.add(ToolObservation.from(toolCall, toolResult));
 
             System.out.println("工具执行: " + (toolResult.success() ? "成功" : "失败"));
             System.out.println("工具结果长度: " + toolResult.content().length() + " 字符");
@@ -82,21 +81,5 @@ public class AgentLoop {
         System.out.println();
         System.out.println("Agent 达到最大循环次数，未收到最终回答。");
         return "达到最大循环次数，任务还没有完成。";
-    }
-
-    /**
-     * 将工具调用和工具结果格式化为模型下一轮可读取的观察文本。
-     *
-     * @param toolCall 本轮执行的工具调用
-     * @param toolResult 工具执行结果
-     * @return 格式化后的观察文本
-     */
-    private String formatObservation(ToolCall toolCall, ToolResult toolResult) {
-        return """
-                工具: %s
-                成功: %s
-                结果:
-                %s
-                """.formatted(toolCall.name(), toolResult.success(), toolResult.content());
     }
 }
