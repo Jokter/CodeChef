@@ -3,8 +3,8 @@ package ai.deep.minicodex.model.client;
 import ai.deep.minicodex.model.api.ModelClient;
 import ai.deep.minicodex.model.api.ModelContext;
 import ai.deep.minicodex.model.api.ModelResponse;
-import ai.deep.minicodex.model.api.ToolCall;
 import ai.deep.minicodex.model.config.GptModelConfig;
+import ai.deep.minicodex.model.parser.ModelOutputParser;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -15,7 +15,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -30,6 +29,7 @@ public class GptModelClient implements ModelClient {
     private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(60);
     private static final int MAX_ATTEMPTS = 3;
     private static final long RETRY_DELAY_MILLIS = 200;
+    private static final ModelOutputParser MODEL_OUTPUT_PARSER = new ModelOutputParser();
 
     private final GptModelConfig config;
     private final HttpClient httpClient;
@@ -71,7 +71,7 @@ public class GptModelClient implements ModelClient {
                 }
 
                 String content = extractContent(OBJECT_MAPPER.readTree(response.body()));
-                return parseModelResponse(content);
+                return MODEL_OUTPUT_PARSER.parse(content);
             } catch (IOException e) {
                 lastFailure = new IllegalStateException("GPT 模型请求或响应解析失败。", e);
                 if (attempt < MAX_ATTEMPTS) {
@@ -164,47 +164,6 @@ public class GptModelClient implements ModelClient {
                 "max_tokens", 600
         );
         return OBJECT_MAPPER.writeValueAsString(payload);
-    }
-
-    private ModelResponse parseModelResponse(String content) throws JsonProcessingException {
-        JsonNode root = OBJECT_MAPPER.readTree(extractJsonObject(content));
-        String type = root.path("type").asText();
-
-        if ("tool_call".equals(type)) {
-            return ModelResponse.toolCall(new ToolCall(
-                    root.path("tool").asText(),
-                    readStringArguments(root.path("arguments"))
-            ));
-        }
-
-        if ("final".equals(type)) {
-            return ModelResponse.finalAnswer(root.path("answer").asText());
-        }
-
-        return ModelResponse.finalAnswer(content);
-    }
-
-    private Map<String, String> readStringArguments(JsonNode argumentsNode) {
-        Map<String, String> arguments = new LinkedHashMap<>();
-        if (!argumentsNode.isObject()) {
-            return arguments;
-        }
-
-        argumentsNode.fields().forEachRemaining(entry -> {
-            JsonNode value = entry.getValue();
-            arguments.put(entry.getKey(), value.isTextual() ? value.asText() : value.toString());
-        });
-        return arguments;
-    }
-
-    private String extractJsonObject(String content) {
-        String trimmed = content.trim();
-        int start = trimmed.indexOf('{');
-        int end = trimmed.lastIndexOf('}');
-        if (start >= 0 && end > start) {
-            return trimmed.substring(start, end + 1);
-        }
-        return trimmed;
     }
 
     private String extractContent(JsonNode root) {

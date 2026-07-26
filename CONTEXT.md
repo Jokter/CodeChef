@@ -19,3 +19,11 @@ _Avoid_: prompt 渲染、工具文本拼接、provider schema 生成
 **模型客户端工具说明依赖**:
 模型客户端接收已汇总的工具说明列表，用来构建发给模型的提示词。它不依赖工具注册表，也不参与工具执行分发。
 _Avoid_: 模型客户端依赖 ToolRegistry、模型客户端执行工具
+
+**模型输出协议**:
+模型必须返回给 agent 的最小 JSON 对象格式。当前只允许 `final` 和 `tool_call` 两类响应；非法 JSON、未知类型或缺失字段都属于协议错误。
+_Avoid_: 普通自然语言回答、Markdown 响应格式、provider 原始响应
+
+**模型输出解析器**:
+把模型输出协议文本转换为 `ModelResponse` 的独立协议层。它不负责发送模型请求，也不解析 OpenAI 或 Anthropic 的原始响应外壳。
+_Avoid_: 模型客户端解析业务协议、HTTP 响应解析器、provider 适配器
