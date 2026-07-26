@@ -41,25 +41,40 @@ public class AgentLoop {
     public String run(String userTask) {
         List<String> observations = new ArrayList<>();
 
+        System.out.println("Agent 开始执行，最大循环次数: " + MAX_STEPS);
         for (int step = 1; step <= MAX_STEPS; step++) {
+            System.out.println();
+            System.out.println("========== Agent 第 " + step + " 轮 ==========");
+            System.out.println("历史观察数量: " + observations.size());
+
             ModelResponse response = modelClient.next(userTask, observations);
 
             if (response.isFinalAnswer()) {
+                System.out.println("模型决策: final");
+                System.out.println("本轮生成最终回答，Agent 结束。");
                 return response.finalAnswer();
             }
 
             ToolCall toolCall = response.toolCall();
-            System.out.println("第 " + step + " 步，模型请求工具: " + toolCall.name());
+            System.out.println("模型决策: tool_call");
+            System.out.println("工具名称: " + toolCall.name());
+            System.out.println("工具参数: " + toolCall.arguments());
 
             ToolResult toolResult = toolRegistry.execute(toolCall);
             String observation = formatObservation(toolCall, toolResult);
             observations.add(observation);
 
-            System.out.println("工具结果:");
-            System.out.println(toolResult.content());
-            System.out.println();
+            System.out.println("工具执行: " + (toolResult.success() ? "成功" : "失败"));
+            System.out.println("工具结果长度: " + toolResult.content().length() + " 字符");
+            if (!toolResult.success()) {
+                System.out.println("错误内容:");
+                System.out.println(toolResult.content());
+            }
+            System.out.println("观察结果已记录，将在下一轮发送给模型。");
         }
 
+        System.out.println();
+        System.out.println("Agent 达到最大循环次数，未收到最终回答。");
         return "达到最大循环次数，任务还没有完成。";
     }
 
