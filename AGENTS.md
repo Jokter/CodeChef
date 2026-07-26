@@ -2,7 +2,7 @@
 
 ## 项目结构与模块组织
 
-本仓库是一个最小化 Java Agent 示例项目，使用 Maven 管理构建。主要代码位于 `src/main/java/ai/deep/minicodex`：
+本仓库是一个最小化 Java Agent 示例项目，使用 Maven 管理构建。用于后续学习codex/claude源码。主要代码位于 `src/main/java/ai/deep/minicodex`：
 
 - `agent/`：Agent 主循环与执行流程。
 - `cli/`：命令行入口，例如 `Main` 与 `SimpleModelChat`。

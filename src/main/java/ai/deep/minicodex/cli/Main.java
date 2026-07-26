@@ -3,6 +3,7 @@ package ai.deep.minicodex.cli;
 import ai.deep.minicodex.agent.AgentLoop;
 import ai.deep.minicodex.model.client.GptModelClient;
 import ai.deep.minicodex.model.config.GptModelConfig;
+import ai.deep.minicodex.model.context.ContextBuilder;
 import ai.deep.minicodex.safety.WorkspacePolicy;
 import ai.deep.minicodex.tool.file.ListFilesTool;
 import ai.deep.minicodex.tool.file.ReadFileTool;
@@ -33,7 +34,8 @@ public class Main {
         toolRegistry.register(new ReadFileTool(workspacePolicy));
 
         GptModelConfig modelConfig = GptModelConfig.loadDefault();
-        AgentLoop agentLoop = new AgentLoop(new GptModelClient(modelConfig, toolRegistry.schemas()), toolRegistry);
+        ContextBuilder contextBuilder = new ContextBuilder(toolRegistry.schemas());
+        AgentLoop agentLoop = new AgentLoop(new GptModelClient(modelConfig), contextBuilder, toolRegistry);
 
         String task = readTask(args);
         System.out.println("工作区: " + workspaceRoot);

@@ -1,8 +1,10 @@
 package ai.deep.minicodex.agent;
 
 import ai.deep.minicodex.model.api.ModelClient;
+import ai.deep.minicodex.model.api.ModelContext;
 import ai.deep.minicodex.model.api.ModelResponse;
 import ai.deep.minicodex.model.api.ToolCall;
+import ai.deep.minicodex.model.context.ContextBuilder;
 import ai.deep.minicodex.tool.api.ToolResult;
 import ai.deep.minicodex.tool.registry.ToolRegistry;
 
@@ -19,16 +21,19 @@ public class AgentLoop {
     private static final int MAX_STEPS = 5;
 
     private final ModelClient modelClient;
+    private final ContextBuilder contextBuilder;
     private final ToolRegistry toolRegistry;
 
     /**
      * 创建 Agent 主循环。
      *
      * @param modelClient 模型客户端，用于生成最终回答或工具调用
+     * @param contextBuilder 上下文构建器，用于生成模型可读内容
      * @param toolRegistry 工具注册表，用于根据工具名执行工具
      */
-    public AgentLoop(ModelClient modelClient, ToolRegistry toolRegistry) {
+    public AgentLoop(ModelClient modelClient, ContextBuilder contextBuilder, ToolRegistry toolRegistry) {
         this.modelClient = modelClient;
+        this.contextBuilder = contextBuilder;
         this.toolRegistry = toolRegistry;
     }
 
@@ -47,7 +52,8 @@ public class AgentLoop {
             System.out.println("========== Agent 第 " + step + " 轮 ==========");
             System.out.println("历史观察数量: " + observations.size());
 
-            ModelResponse response = modelClient.next(userTask, observations);
+            ModelContext context = contextBuilder.build(userTask, observations);
+            ModelResponse response = modelClient.next(context);
 
             if (response.isFinalAnswer()) {
                 System.out.println("模型决策: final");

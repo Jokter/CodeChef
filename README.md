@@ -18,6 +18,7 @@
 ```text
 Main
  -> AgentLoop
+ -> ContextBuilder
  -> ModelClient
  -> ModelResponse / ToolCall
  -> ToolRegistry
@@ -28,7 +29,7 @@ Main
  -> final answer
 ```
 
-`AgentLoop` 负责控制循环次数和决定下一步动作；`ModelClient` 只负责给出最终回答或工具调用；`ToolRegistry` 根据工具名分发到具体工具；文件工具在访问路径前通过 `WorkspacePolicy` 做工作区边界校验。启动时，`Main` 会把 `ToolRegistry.schemas()` 传给 `GptModelClient`，用于生成模型可读的工具说明。
+`AgentLoop` 负责控制循环次数和决定下一步动作；`ContextBuilder` 根据用户任务、工具说明和历史观察结果生成模型可读上下文；`ModelClient` 只负责给出最终回答或工具调用；`ToolRegistry` 根据工具名分发到具体工具；文件工具在访问路径前通过 `WorkspacePolicy` 做工作区边界校验。启动时，`Main` 会把 `ToolRegistry.schemas()` 传给 `ContextBuilder`，用于生成模型可读的工具说明。
 
 推荐直接用 JDK 编译运行：
 
