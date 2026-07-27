@@ -4,6 +4,8 @@ import ai.deep.minicodex.agent.AgentLoop;
 import ai.deep.minicodex.model.client.GptModelClient;
 import ai.deep.minicodex.model.config.GptModelConfig;
 import ai.deep.minicodex.model.context.ContextBuilder;
+import ai.deep.minicodex.safety.ApprovalService;
+import ai.deep.minicodex.safety.ConsoleApprovalPrompt;
 import ai.deep.minicodex.safety.WorkspacePolicy;
 import ai.deep.minicodex.tool.file.ListFilesTool;
 import ai.deep.minicodex.tool.file.ReadFileTool;
@@ -29,6 +31,7 @@ public class Main {
     public static void main(String[] args) throws Exception {
         Path workspaceRoot = Path.of("").toAbsolutePath().normalize();
         WorkspacePolicy workspacePolicy = new WorkspacePolicy(workspaceRoot);
+        Scanner scanner = new Scanner(System.in);
 
         ToolRegistry toolRegistry = new ToolRegistry();
         toolRegistry.register(new ListFilesTool(workspacePolicy));
@@ -37,9 +40,14 @@ public class Main {
 
         GptModelConfig modelConfig = GptModelConfig.loadDefault();
         ContextBuilder contextBuilder = new ContextBuilder(toolRegistry.schemas());
-        AgentLoop agentLoop = new AgentLoop(new GptModelClient(modelConfig), contextBuilder, toolRegistry);
+        AgentLoop agentLoop = new AgentLoop(
+                new GptModelClient(modelConfig),
+                contextBuilder,
+                toolRegistry,
+                new ApprovalService(new ConsoleApprovalPrompt(scanner, System.out))
+        );
 
-        String task = readTask(args);
+        String task = readTask(args, scanner);
         System.out.println("工作区: " + workspaceRoot);
         System.out.println("任务: " + task);
         System.out.println();
@@ -59,13 +67,12 @@ public class Main {
      * @param args 命令行参数
      * @return 用户任务文本
      */
-    private static String readTask(String[] args) {
+    private static String readTask(String[] args, Scanner scanner) {
         if (args.length > 0) {
             return String.join(" ", args);
         }
 
         System.out.print("请输入任务: ");
-        Scanner scanner = new Scanner(System.in);
         String line = scanner.nextLine().trim();
         return line.isEmpty() ? "看看当前项目里有什么文件" : line;
     }

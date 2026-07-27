@@ -5,6 +5,7 @@ import ai.deep.minicodex.model.api.ModelContext;
 import ai.deep.minicodex.model.api.ModelResponse;
 import ai.deep.minicodex.model.api.ToolCall;
 import ai.deep.minicodex.model.context.ContextBuilder;
+import ai.deep.minicodex.safety.ApprovalService;
 import ai.deep.minicodex.tool.api.ToolResult;
 import ai.deep.minicodex.tool.registry.ToolRegistry;
 
@@ -23,18 +24,26 @@ public class AgentLoop {
     private final ModelClient modelClient;
     private final ContextBuilder contextBuilder;
     private final ToolRegistry toolRegistry;
+    private final ApprovalService approvalService;
 
     /**
-     * 创建 Agent 主循环。
+     * 创建带审批服务的 Agent 主循环。
      *
-     * @param modelClient 模型客户端，用于生成最终回答或工具调用
-     * @param contextBuilder 上下文构建器，用于生成模型可读内容
-     * @param toolRegistry 工具注册表，用于根据工具名执行工具
+     * @param modelClient 模型客户端
+     * @param contextBuilder 上下文构建器
+     * @param toolRegistry 工具注册表
+     * @param approvalService 审批服务
      */
-    public AgentLoop(ModelClient modelClient, ContextBuilder contextBuilder, ToolRegistry toolRegistry) {
+    public AgentLoop(
+            ModelClient modelClient,
+            ContextBuilder contextBuilder,
+            ToolRegistry toolRegistry,
+            ApprovalService approvalService
+    ) {
         this.modelClient = modelClient;
         this.contextBuilder = contextBuilder;
         this.toolRegistry = toolRegistry;
+        this.approvalService = approvalService;
     }
 
     /**
@@ -66,7 +75,7 @@ public class AgentLoop {
             System.out.println("工具名称: " + toolCall.name());
             System.out.println("工具参数: " + toolCall.arguments());
 
-            ToolResult toolResult = toolRegistry.execute(toolCall);
+            ToolResult toolResult = executeWithApproval(toolCall);
             observations.add(ToolObservation.from(toolCall, toolResult));
 
             System.out.println("工具执行: " + (toolResult.success() ? "成功" : "失败"));
@@ -81,5 +90,12 @@ public class AgentLoop {
         System.out.println();
         System.out.println("Agent 达到最大循环次数，未收到最终回答。");
         return "达到最大循环次数，任务还没有完成。";
+    }
+
+    private ToolResult executeWithApproval(ToolCall toolCall) {
+        if (!approvalService.approve(toolCall)) {
+            return ToolResult.error("工具调用被拒绝: " + toolCall.name());
+        }
+        return toolRegistry.execute(toolCall);
     }
 }

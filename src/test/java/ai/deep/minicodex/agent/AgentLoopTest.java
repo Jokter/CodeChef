@@ -5,6 +5,7 @@ import ai.deep.minicodex.model.api.ModelContext;
 import ai.deep.minicodex.model.api.ModelResponse;
 import ai.deep.minicodex.model.api.ToolCall;
 import ai.deep.minicodex.model.context.ContextBuilder;
+import ai.deep.minicodex.safety.ApprovalService;
 import ai.deep.minicodex.tool.api.Tool;
 import ai.deep.minicodex.tool.api.ToolResult;
 import ai.deep.minicodex.tool.api.ToolSchema;
@@ -27,12 +28,13 @@ class AgentLoopTest {
         AgentLoop agentLoop = new AgentLoop(
                 modelClient,
                 contextBuilder,
-                toolRegistry
+                toolRegistry,
+                new ApprovalService(toolCall -> false)
         );
 
         String answer = agentLoop.run("读取 README");
 
-        ToolObservation observation = contextBuilder.secondTurnObservations.getFirst();
+        ToolObservation observation = contextBuilder.secondTurnObservations.get(0);
         assertEquals("完成", answer);
         assertEquals("read_file", observation.toolName());
         assertEquals(Map.of("path", "README.md"), observation.arguments());
