@@ -7,6 +7,7 @@ import ai.deep.minicodex.model.context.ContextBuilder;
 import ai.deep.minicodex.safety.ApprovalService;
 import ai.deep.minicodex.safety.ConsoleApprovalPrompt;
 import ai.deep.minicodex.safety.WorkspacePolicy;
+import ai.deep.minicodex.tool.command.RunCommandTool;
 import ai.deep.minicodex.tool.file.ListFilesTool;
 import ai.deep.minicodex.tool.file.ReadFileTool;
 import ai.deep.minicodex.tool.file.WriteFileTool;
@@ -37,6 +38,7 @@ public class Main {
         toolRegistry.register(new ListFilesTool(workspacePolicy));
         toolRegistry.register(new ReadFileTool(workspacePolicy));
         toolRegistry.register(new WriteFileTool(workspacePolicy));
+        toolRegistry.register(new RunCommandTool(workspacePolicy));
 
         GptModelConfig modelConfig = GptModelConfig.loadDefault();
         ContextBuilder contextBuilder = new ContextBuilder(toolRegistry.schemas());
