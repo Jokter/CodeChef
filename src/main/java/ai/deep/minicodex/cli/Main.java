@@ -1,6 +1,7 @@
 package ai.deep.minicodex.cli;
 
 import ai.deep.minicodex.agent.AgentLoop;
+import ai.deep.minicodex.agent.session.SessionLog;
 import ai.deep.minicodex.model.client.GptModelClient;
 import ai.deep.minicodex.model.config.GptModelConfig;
 import ai.deep.minicodex.model.context.ContextBuilder;
@@ -46,7 +47,8 @@ public class Main {
                 new GptModelClient(modelConfig),
                 contextBuilder,
                 toolRegistry,
-                new ApprovalService(new ConsoleApprovalPrompt(scanner, System.out))
+                new ApprovalService(new ConsoleApprovalPrompt(scanner, System.out)),
+                new SessionLog(workspaceRoot)
         );
 
         String task = readTask(args, scanner);

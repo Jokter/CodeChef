@@ -5,6 +5,9 @@ import ai.deep.minicodex.model.api.ModelContext;
 import ai.deep.minicodex.model.api.ModelResponse;
 import ai.deep.minicodex.model.api.ToolCall;
 import ai.deep.minicodex.model.context.ContextBuilder;
+import ai.deep.minicodex.agent.session.Session;
+import ai.deep.minicodex.agent.session.SessionLog;
+import ai.deep.minicodex.agent.session.Turn;
 import ai.deep.minicodex.safety.ApprovalService;
 import ai.deep.minicodex.tool.api.ToolResult;
 import ai.deep.minicodex.tool.registry.ToolRegistry;
@@ -25,6 +28,7 @@ public class AgentLoop {
     private final ContextBuilder contextBuilder;
     private final ToolRegistry toolRegistry;
     private final ApprovalService approvalService;
+    private final SessionLog sessionLog;
 
     /**
      * 创建带审批服务的 Agent 主循环。
@@ -33,17 +37,20 @@ public class AgentLoop {
      * @param contextBuilder 上下文构建器
      * @param toolRegistry 工具注册表
      * @param approvalService 审批服务
+     * @param sessionLog 会话日志
      */
     public AgentLoop(
             ModelClient modelClient,
             ContextBuilder contextBuilder,
             ToolRegistry toolRegistry,
-            ApprovalService approvalService
+            ApprovalService approvalService,
+            SessionLog sessionLog
     ) {
         this.modelClient = modelClient;
         this.contextBuilder = contextBuilder;
         this.toolRegistry = toolRegistry;
         this.approvalService = approvalService;
+        this.sessionLog = sessionLog;
     }
 
     /**
@@ -54,42 +61,59 @@ public class AgentLoop {
      */
     public String run(String userTask) {
         List<ToolObservation> observations = new ArrayList<>();
+        Session session = sessionLog.start(userTask);
+        String sessionStatus = "failed";
+        Throwable sessionFailure = null;
 
-        System.out.println("Agent 开始执行，最大循环次数: " + MAX_STEPS);
-        for (int step = 1; step <= MAX_STEPS; step++) {
+        try {
+            System.out.println("Agent 开始执行，最大循环次数: " + MAX_STEPS);
+            for (int step = 1; step <= MAX_STEPS; step++) {
+                Turn turn = new Turn(step);
+                System.out.println();
+                System.out.println("========== Agent 第 " + step + " 轮 ==========");
+                System.out.println("历史观察数量: " + observations.size());
+
+                ModelContext context = contextBuilder.build(userTask, observations);
+                ModelResponse response = modelClient.next(context);
+                sessionLog.recordModelResponse(session, turn, response);
+
+                if (response.isFinalAnswer()) {
+                    System.out.println("模型决策: final");
+                    System.out.println("本轮生成最终回答，Agent 结束。");
+                    sessionLog.recordFinalAnswer(session, turn, response.finalAnswer());
+                    sessionStatus = "completed";
+                    return response.finalAnswer();
+                }
+
+                ToolCall toolCall = response.toolCall();
+                sessionLog.recordToolCall(session, turn, toolCall);
+                System.out.println("模型决策: tool_call");
+                System.out.println("工具名称: " + toolCall.name());
+                System.out.println("工具参数: " + toolCall.arguments());
+
+                ToolResult toolResult = executeWithApproval(toolCall);
+                sessionLog.recordToolResult(session, turn, toolResult);
+                observations.add(ToolObservation.from(toolCall, toolResult));
+
+                System.out.println("工具执行: " + (toolResult.success() ? "成功" : "失败"));
+                System.out.println("工具结果长度: " + toolResult.content().length() + " 字符");
+                if (!toolResult.success()) {
+                    System.out.println("错误内容:");
+                    System.out.println(toolResult.content());
+                }
+                System.out.println("观察结果已记录，将在下一轮发送给模型。");
+            }
+
             System.out.println();
-            System.out.println("========== Agent 第 " + step + " 轮 ==========");
-            System.out.println("历史观察数量: " + observations.size());
-
-            ModelContext context = contextBuilder.build(userTask, observations);
-            ModelResponse response = modelClient.next(context);
-
-            if (response.isFinalAnswer()) {
-                System.out.println("模型决策: final");
-                System.out.println("本轮生成最终回答，Agent 结束。");
-                return response.finalAnswer();
-            }
-
-            ToolCall toolCall = response.toolCall();
-            System.out.println("模型决策: tool_call");
-            System.out.println("工具名称: " + toolCall.name());
-            System.out.println("工具参数: " + toolCall.arguments());
-
-            ToolResult toolResult = executeWithApproval(toolCall);
-            observations.add(ToolObservation.from(toolCall, toolResult));
-
-            System.out.println("工具执行: " + (toolResult.success() ? "成功" : "失败"));
-            System.out.println("工具结果长度: " + toolResult.content().length() + " 字符");
-            if (!toolResult.success()) {
-                System.out.println("错误内容:");
-                System.out.println(toolResult.content());
-            }
-            System.out.println("观察结果已记录，将在下一轮发送给模型。");
+            System.out.println("Agent 达到最大循环次数，未收到最终回答。");
+            sessionStatus = "max_steps";
+            return "达到最大循环次数，任务还没有完成。";
+        } catch (RuntimeException | Error e) {
+            sessionFailure = e;
+            throw e;
+        } finally {
+            sessionLog.finish(session, sessionStatus, sessionFailure);
         }
-
-        System.out.println();
-        System.out.println("Agent 达到最大循环次数，未收到最终回答。");
-        return "达到最大循环次数，任务还没有完成。";
     }
 
     private ToolResult executeWithApproval(ToolCall toolCall) {

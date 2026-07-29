@@ -1,6 +1,7 @@
 package ai.deep.minicodex.tool.command;
 
 import ai.deep.minicodex.agent.AgentLoop;
+import ai.deep.minicodex.agent.session.SessionLog;
 import ai.deep.minicodex.model.api.ModelClient;
 import ai.deep.minicodex.model.api.ModelResponse;
 import ai.deep.minicodex.model.api.ToolCall;
@@ -141,7 +142,8 @@ class RunCommandToolTest {
                 new OneCommandThenFinalClient(),
                 new ContextBuilder(registry.schemas()),
                 registry,
-                new ApprovalService(toolCall -> true)
+                new ApprovalService(toolCall -> true),
+                new SessionLog(tempDir)
         );
 
         String answer = agentLoop.run("运行测试");

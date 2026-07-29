@@ -5,13 +5,16 @@ import ai.deep.minicodex.model.api.ModelContext;
 import ai.deep.minicodex.model.api.ModelResponse;
 import ai.deep.minicodex.model.api.ToolCall;
 import ai.deep.minicodex.model.context.ContextBuilder;
+import ai.deep.minicodex.agent.session.SessionLog;
 import ai.deep.minicodex.safety.ApprovalService;
 import ai.deep.minicodex.tool.api.Tool;
 import ai.deep.minicodex.tool.api.ToolResult;
 import ai.deep.minicodex.tool.api.ToolSchema;
 import ai.deep.minicodex.tool.registry.ToolRegistry;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -21,6 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ApprovalAgentLoopTest {
+    @TempDir
+    Path tempDir;
+
     @Test
     void deniedWriteToolIsNotExecutedAndObservationIsReturned() {
         AtomicInteger executions = new AtomicInteger();
@@ -29,7 +35,8 @@ class ApprovalAgentLoopTest {
                 new OneToolThenFinalClient("write_file"),
                 contextBuilder,
                 registry("write_file", executions),
-                new ApprovalService(toolCall -> false)
+                new ApprovalService(toolCall -> false),
+                new SessionLog(tempDir)
         );
 
         assertEquals("完成", agentLoop.run("写文件"));
@@ -47,7 +54,8 @@ class ApprovalAgentLoopTest {
                 new OneToolThenFinalClient("write_file"),
                 contextBuilder,
                 registry("write_file", executions),
-                new ApprovalService(toolCall -> true)
+                new ApprovalService(toolCall -> true),
+                new SessionLog(tempDir)
         );
 
         assertEquals("完成", agentLoop.run("写文件"));
