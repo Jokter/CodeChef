@@ -36,6 +36,17 @@ public class ApprovalService {
         };
     }
 
+    /**
+     * 返回当前审批策略的可读说明。
+     *
+     * @return 审批策略说明
+     */
+    public String describePolicy() {
+        return "read_file、list_files：直接允许" + System.lineSeparator()
+                + "write_file、run_command：需要确认" + System.lineSeparator()
+                + "其他工具：拒绝";
+    }
+
     private ApprovalDecision decide(ToolCall toolCall) {
         return switch (toolCall.name()) {
             case "read_file", "list_files" -> ApprovalDecision.ALLOW;

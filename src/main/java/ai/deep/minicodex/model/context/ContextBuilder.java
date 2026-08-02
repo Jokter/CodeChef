@@ -3,6 +3,7 @@ package ai.deep.minicodex.model.context;
 import ai.deep.minicodex.agent.ToolObservation;
 import ai.deep.minicodex.model.api.ModelContext;
 import ai.deep.minicodex.tool.api.ToolSchema;
+import ai.deep.minicodex.tool.api.ToolSchemaRenderer;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -54,32 +55,7 @@ public class ContextBuilder {
     }
 
     private String buildSystemPrompt() {
-        return SYSTEM_PROMPT_TEMPLATE.formatted(renderToolSchemas());
-    }
-
-    private String renderToolSchemas() {
-        if (toolSchemas.isEmpty()) {
-            return "当前没有可用工具。";
-        }
-
-        return toolSchemas.stream()
-                .map(this::renderToolSchema)
-                .collect(Collectors.joining(System.lineSeparator()));
-    }
-
-    private String renderToolSchema(ToolSchema schema) {
-        String parameters = schema.parameters().entrySet().stream()
-                .map(entry -> "  - " + entry.getKey() + ": " + entry.getValue())
-                .collect(Collectors.joining(System.lineSeparator()));
-        if (parameters.isBlank()) {
-            parameters = "  - 无参数。";
-        }
-
-        return "- " + schema.name() + ": " + schema.description()
-                + System.lineSeparator()
-                + "  参数："
-                + System.lineSeparator()
-                + parameters;
+        return SYSTEM_PROMPT_TEMPLATE.formatted(ToolSchemaRenderer.render(toolSchemas));
     }
 
     private String buildUserContent(String userTask, List<ToolObservation> observations) {

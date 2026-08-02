@@ -43,15 +43,69 @@ public class Main {
 
         GptModelConfig modelConfig = GptModelConfig.loadDefault();
         ContextBuilder contextBuilder = new ContextBuilder(toolRegistry.schemas());
+        ApprovalService approvalService = new ApprovalService(new ConsoleApprovalPrompt(scanner, System.out));
         AgentLoop agentLoop = new AgentLoop(
                 new GptModelClient(modelConfig),
                 contextBuilder,
                 toolRegistry,
-                new ApprovalService(new ConsoleApprovalPrompt(scanner, System.out)),
+                approvalService,
                 new SessionLog(workspaceRoot)
         );
+        SlashCommandHandler slashCommandHandler = new SlashCommandHandler(
+                modelConfig,
+                workspaceRoot,
+                toolRegistry,
+                approvalService,
+                AgentLoop.maxSteps()
+        );
 
-        String task = readTask(args, scanner);
+        if (args.length == 0) {
+            runRepl(scanner, workspaceRoot, agentLoop, slashCommandHandler);
+            return;
+        }
+
+        runTask(String.join(" ", args), workspaceRoot, agentLoop);
+    }
+
+    /**
+     * 运行交互式命令行循环。
+     *
+     * @param scanner 控制台输入
+     * @param workspaceRoot 工作区根目录
+     * @param agentLoop Agent 主循环
+     * @param slashCommandHandler 控制命令处理器
+     */
+    private static void runRepl(
+            Scanner scanner,
+            Path workspaceRoot,
+            AgentLoop agentLoop,
+            SlashCommandHandler slashCommandHandler
+    ) {
+        System.out.println("进入交互模式，输入 /exit 退出。");
+        while (true) {
+            System.out.print("请输入任务或命令: ");
+            if (!scanner.hasNextLine()) {
+                System.out.println();
+                System.out.println("输入结束，已退出。");
+                return;
+            }
+
+            String input = scanner.nextLine();
+            SlashCommandHandler.CommandResult result = slashCommandHandler.handle(input);
+            if (result.action() == SlashCommandHandler.Action.NOT_A_COMMAND) {
+                runTask(input.trim(), workspaceRoot, agentLoop);
+                continue;
+            }
+            if (!result.output().isBlank()) {
+                System.out.println(result.output());
+            }
+            if (result.action() == SlashCommandHandler.Action.EXIT) {
+                return;
+            }
+        }
+    }
+
+    private static void runTask(String task, Path workspaceRoot, AgentLoop agentLoop) {
         System.out.println("工作区: " + workspaceRoot);
         System.out.println("任务: " + task);
         System.out.println();
@@ -60,24 +114,5 @@ public class Main {
         System.out.println();
         System.out.println("最终回答:");
         System.out.println(answer);
-    }
-
-    /**
-     * 从命令行参数或标准输入读取用户任务。
-     *
-     * <p>当命令行参数非空时，将所有参数用空格拼接为任务文本；否则提示用户输入。
-     * 如果用户直接回车，则返回一个默认任务，方便本地快速演示。</p>
-     *
-     * @param args 命令行参数
-     * @return 用户任务文本
-     */
-    private static String readTask(String[] args, Scanner scanner) {
-        if (args.length > 0) {
-            return String.join(" ", args);
-        }
-
-        System.out.print("请输入任务: ");
-        String line = scanner.nextLine().trim();
-        return line.isEmpty() ? "看看当前项目里有什么文件" : line;
     }
 }

@@ -54,6 +54,15 @@ public class AgentLoop {
     }
 
     /**
+     * 返回 Agent 单次任务允许的最大循环次数。
+     *
+     * @return 最大循环次数
+     */
+    public static int maxSteps() {
+        return MAX_STEPS;
+    }
+
+    /**
      * 执行用户任务，直到模型给出最终回答或达到最大循环次数。
      *
      * @param userTask 用户输入的自然语言任务
