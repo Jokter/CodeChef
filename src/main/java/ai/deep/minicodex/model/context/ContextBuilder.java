@@ -14,6 +14,11 @@ import java.util.stream.Collectors;
  * <p>该类只负责决定模型能看到什么，不负责发送请求、解析模型输出或执行工具。</p>
  */
 public class ContextBuilder {
+    private static final int COMPACTION_THRESHOLD = 3;
+    private static final int RECENT_OBSERVATION_COUNT = 2;
+    private static final int MAX_COMPACTED_HISTORY_LENGTH = 1200;
+    private static final int MAX_COMPACTED_RESULT_LENGTH = 240;
+
     private static final String SYSTEM_PROMPT_TEMPLATE = """
             你是一个最小 Java Agent 的 GPT 模型客户端。
             你必须只返回一个 JSON 对象，不要使用 Markdown 代码块。
@@ -72,10 +77,73 @@ public class ContextBuilder {
             return "当前还没有工具观察结果。";
         }
 
-        String renderedObservations = observations.stream()
+        if (observations.size() <= COMPACTION_THRESHOLD) {
+            return "历史工具观察结果:\n" + renderObservations(observations);
+        }
+
+        int recentStart = observations.size() - RECENT_OBSERVATION_COUNT;
+        List<ToolObservation> olderObservations = observations.subList(0, recentStart);
+        List<ToolObservation> recentObservations = observations.subList(recentStart, observations.size());
+        return "已压缩的历史观察:\n"
+                + buildCompactedHistory(olderObservations)
+                + "\n---\n最近工具观察:\n"
+                + renderObservations(recentObservations);
+    }
+
+    private String renderObservations(List<ToolObservation> observations) {
+        return observations.stream()
                 .map(this::renderObservation)
                 .collect(Collectors.joining("\n---\n"));
-        return "历史工具观察结果:\n" + renderedObservations;
+    }
+
+    private String buildCompactedHistory(List<ToolObservation> observations) {
+        StringBuilder summary = new StringBuilder();
+        for (int index = 0; index < observations.size(); index++) {
+            String separator = summary.isEmpty() ? "" : "\n---\n";
+            String observation = renderCompactedObservation(observations.get(index));
+            int remainingCount = observations.size() - index - 1;
+            String omittedMessage = remainingCount == 0 ? "" : omittedMessage(remainingCount);
+            int availableLength = MAX_COMPACTED_HISTORY_LENGTH - summary.length() - omittedMessage.length();
+
+            if (separator.length() + observation.length() <= availableLength) {
+                summary.append(separator).append(observation);
+                continue;
+            }
+
+            if (availableLength > separator.length()) {
+                summary.append(separator);
+                summary.append(abbreviate(observation, availableLength - separator.length()));
+            }
+            summary.append(omittedMessage);
+            return summary.toString();
+        }
+        return summary.toString();
+    }
+
+    private String renderCompactedObservation(ToolObservation observation) {
+        return """
+                工具: %s
+                成功: %s
+                结果: %s
+                """.formatted(
+                observation.toolName(),
+                observation.success(),
+                abbreviate(observation.content(), MAX_COMPACTED_RESULT_LENGTH)
+        );
+    }
+
+    private String omittedMessage(int omittedCount) {
+        return "\n其余 " + omittedCount + " 条旧记录已省略。";
+    }
+
+    private String abbreviate(String content, int maxLength) {
+        if (content.length() <= maxLength) {
+            return content;
+        }
+        if (maxLength <= 3) {
+            return content.substring(0, maxLength);
+        }
+        return content.substring(0, maxLength - 3) + "...";
     }
 
     private String renderObservation(ToolObservation observation) {
